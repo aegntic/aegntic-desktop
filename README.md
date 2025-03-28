@@ -2,84 +2,103 @@
 
 An Electron application that integrates multiple AI chat services (Claude, ChatGPT, Grok, Gemini) into a single desktop interface, with Obsidian mindmap generation.
 
-## Features
+## Project Overview
 
-- **Unified Interface**: Access multiple AI services in one application
-- **Direct Browser Integration**: Uses your existing premium subscriptions without APIs
-- **Persistent Login Sessions**: Log in once and maintain your session
-- **Response Comparison**: View responses side-by-side or in tabs
-- **Obsidian Integration**: Generate mindmaps in Obsidian from AI conversations
-- **Cross-Platform**: Works on Windows, macOS, and Linux
+Aegntic Desktop provides a unified interface for premium AI services using direct browser integration, maintaining persistent login sessions, and allowing side-by-side comparison of responses.
 
-## Prerequisites
+### Key Features
 
-- [Node.js](https://nodejs.org/) (v14 or higher)
-- [npm](https://www.npmjs.com/) (v6 or higher)
-- Premium subscriptions to AI services (Claude Pro, ChatGPT Plus, etc.)
-- [Obsidian](https://obsidian.md/) (optional, for mindmap generation)
+- **Multiple AI Services**: Integrate Claude, ChatGPT, Grok, and Gemini in one interface
+- **Direct Browser Integration**: Uses Electron's BrowserView to access services
+- **Real-time Response Streaming**: View responses as they're generated
+- **Side-by-side Comparison**: Compare responses from different models
+- **Obsidian Mindmaps**: Export conversations as structured mindmaps
+- **Conversation History**: Save and manage previous conversations
+- **Persistent Sessions**: Maintain login state between app sessions
+- **Dark Mode**: Customizable appearance with light and dark themes
 
-## Installation
+## Second Iteration Improvements
 
-1. Clone the repository:
-   ```
+This release includes significant improvements over the initial MVP:
+
+1. **Response Streaming Implementation**: Real-time display of AI responses as they're generated
+2. **Enhanced Session Management**: Improved reliability of login sessions with automatic refresh
+3. **Robust Error Handling**: Better error recovery and user notifications
+4. **UI Polish**: Improved design with dark mode support
+5. **Local History & Storage**: Conversation history persists between sessions
+6. **Settings Panel**: Customizable user preferences
+7. **Advanced Mindmap Generation**: Better organization of exported content
+8. **Keyboard Shortcuts**: Support for keyboard navigation and input
+
+## Technical Implementation
+
+- **Electron**: Cross-platform desktop application framework
+- **React & TypeScript**: For a robust, type-safe UI
+- **BrowserView**: Electron's embedded browser capability
+- **IPC Communication**: For main process / renderer process communication
+- **Local Storage**: IndexedDB for conversation history
+- **Obsidian URI Protocol**: For direct integration with Obsidian
+
+## Getting Started
+
+1. **Prerequisites**:
+   - Node.js (v14+)
+   - npm or yarn
+
+2. **Installation**:
+   ```bash
+   # Clone the repository
    git clone https://github.com/yourusername/aegntic-desktop.git
    cd aegntic-desktop
-   ```
 
-2. Install dependencies:
-   ```
+   # Install dependencies
    npm install
    cd client
    npm install
    cd ..
    ```
 
-## Development
-
-1. Start the React development server:
-   ```
-   npm run react-start
-   ```
-
-2. In a separate terminal, start the Electron app:
-   ```
-   npm run electron-start
+3. **Development**:
+   ```bash
+   # Start the application in development mode
+   npm start
    ```
 
-## Production Build
-
-1. Build the application:
-   ```
+4. **Building**:
+   ```bash
+   # Create a distribution package
    npm run build
    ```
 
-2. The packaged application will be available in the `dist` directory.
+## Usage Guide
 
-## Usage
-
-1. **Connect to AI Services**: 
-   - Click the "Login" button next to each model
-   - Complete the login process in the embedded browser
-   - Once logged in, the model status will change to "Connected"
-
-2. **Send Prompts**:
+1. **First Launch**:
+   - Set your Obsidian vault location
+   - Login to your preferred AI services
+   
+2. **Sending Prompts**:
    - Select one or more AI models
-   - Enter your prompt in the input field
-   - Click "Send Prompt"
-   - View responses in tabs or split view
+   - Enter your prompt
+   - Click "Send Prompt" or use Ctrl+Enter
+   
+3. **Viewing Responses**:
+   - Switch between tab and split view
+   - Watch responses stream in real-time
+   - Stop generation if needed
+   
+4. **Exporting to Obsidian**:
+   - Click "Export to Obsidian" to create a mindmap
+   - Access conversations from your Obsidian vault
+   
+5. **Managing History**:
+   - View past conversations
+   - Reload previous prompts and responses
+   - Delete unwanted history items
 
-3. **Export to Obsidian**:
-   - Set up your Obsidian vault by clicking "Set Obsidian Vault"
-   - After receiving responses, click "Export to Obsidian"
-   - The mindmap will be created in the "AI Conversations" folder in your vault
+## Contributing
 
-## Architecture
-
-- **Electron Main Process**: Manages browser sessions and IPC
-- **React UI**: Provides the user interface
-- **BrowserView Integration**: Embeds each AI service in a hidden browser view
-- **Obsidian Integration**: Generates markdown files and opens them via the Obsidian URI protocol
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -4,6 +4,8 @@ interface Response {
   modelId: string;
   modelName: string;
   content: string;
+  isComplete?: boolean;
+  error?: boolean;
   timestamp: number;
 }
 
@@ -12,15 +14,22 @@ interface ResponseViewProps {
   isLoading: boolean;
   selectedModels: string[];
   onExportToObsidian: () => void;
+  viewMode?: 'tabs' | 'split';
 }
 
 const ResponseView: React.FC<ResponseViewProps> = ({ 
   responses, 
   isLoading, 
   selectedModels,
-  onExportToObsidian
+  onExportToObsidian,
+  viewMode: propViewMode = 'tabs'
 }) => {
-  const [viewMode, setViewMode] = useState<'tabs' | 'split'>('tabs');
+  const [viewMode, setViewMode] = useState<'tabs' | 'split'>(propViewMode);
+  
+  // Update view mode if prop changes
+  useEffect(() => {
+    setViewMode(propViewMode);
+  }, [propViewMode]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
   // Set active tab when responses change
@@ -38,17 +47,23 @@ const ResponseView: React.FC<ResponseViewProps> = ({
           {Object.values(responses).map(response => (
             <div
               key={response.modelId}
-              className={`tab ${activeTab === response.modelId ? 'active' : ''}`}
+              className={`tab ${activeTab === response.modelId ? 'active' : ''} ${response.error ? 'error' : ''} ${!response.isComplete && !response.error ? 'streaming' : ''}`}
               onClick={() => setActiveTab(response.modelId)}
             >
               {response.modelName}
+              {!response.isComplete && !response.error && (
+                <span className="streaming-indicator">...</span>
+              )}
             </div>
           ))}
         </div>
         <div className="tab-content">
           {activeTab && responses[activeTab] ? (
-            <div className="response-content">
+            <div className={`response-content ${responses[activeTab].error ? 'error' : ''}`}>
               {responses[activeTab].content}
+              {!responses[activeTab].isComplete && !responses[activeTab].error && (
+                <span className="streaming-cursor"></span>
+              )}
             </div>
           ) : (
             <div className="no-response">
@@ -65,12 +80,22 @@ const ResponseView: React.FC<ResponseViewProps> = ({
       <div className="split-response-view">
         {Object.values(responses).length > 0 ? (
           <div className="split-grid" style={{ 
-            gridTemplateColumns: `repeat(${Object.values(responses).length}, 1fr)` 
+            gridTemplateColumns: `repeat(${Math.min(Object.values(responses).length, 3)}, 1fr)` 
           }}>
             {Object.values(responses).map(response => (
-              <div key={response.modelId} className="split-item">
-                <div className="split-header">{response.modelName}</div>
-                <div className="split-content">{response.content}</div>
+              <div key={response.modelId} className={`split-item ${response.error ? 'error' : ''}`}>
+                <div className={`split-header ${!response.isComplete && !response.error ? 'streaming' : ''}`}>
+                  {response.modelName}
+                  {!response.isComplete && !response.error && (
+                    <span className="streaming-indicator">...</span>
+                  )}
+                </div>
+                <div className="split-content">
+                  {response.content}
+                  {!response.isComplete && !response.error && (
+                    <span className="streaming-cursor"></span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -81,6 +106,13 @@ const ResponseView: React.FC<ResponseViewProps> = ({
         )}
       </div>
     );
+  };
+  
+  // Format streaming content with proper line breaks and styling
+  const formatContent = (content: string) => {
+    return content
+      .split('\n')
+      .map((line, i) => <React.Fragment key={i}>{line}<br /></React.Fragment>);
   };
 
   return (
@@ -100,10 +132,19 @@ const ResponseView: React.FC<ResponseViewProps> = ({
             Split View
           </button>
         </div>
+        
+        <div className="response-status">
+          {isLoading && (
+            <div className="streaming-badge">
+              <span className="streaming-dot"></span>
+              Generating...
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="response-view-content">
-        {isLoading ? (
+        {isLoading && Object.keys(responses).length === 0 ? (
           <div className="loading-state">
             {selectedModels.length > 0 ? (
               <div>
@@ -124,9 +165,17 @@ const ResponseView: React.FC<ResponseViewProps> = ({
       </div>
 
       <div className="response-view-actions">
+        <div className="action-info">
+          {Object.values(responses).filter(r => !r.isComplete && !r.error).length > 0 && (
+            <span className="streaming-info">
+              <span className="streaming-dot"></span>
+              Responses are still being generated...
+            </span>
+          )}
+        </div>
         <button 
           className="export-button" 
-          disabled={Object.keys(responses).length === 0 || isLoading}
+          disabled={Object.keys(responses).length === 0}
           onClick={onExportToObsidian}
         >
           Export to Obsidian

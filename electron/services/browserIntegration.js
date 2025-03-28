@@ -134,7 +134,87 @@ class BrowserIntegrator {
     }
     
     session.isLoggedIn = status;
+    
+    // Store login state within the session data for persistence
+    if (session.view && session.view.webContents) {
+      await session.view.webContents.executeJavaScript(`
+        localStorage.setItem('aegntic_login_state', '${status ? 'true' : 'false'}');
+      `).catch(err => console.error('Error saving login state to localStorage:', err));
+    }
+    
     return session;
+  }
+  
+  /**
+   * Refresh the browser session to maintain login state
+   * @param {string} id - The model ID
+   * @returns {Promise<object>} The session object
+   */
+  async refreshSession(id) {
+    const session = this.sessions[id];
+    if (!session) {
+      throw new Error(`Session ${id} not found`);
+    }
+    
+    // If already logged in, navigate to the main page to refresh the session
+    if (session.isLoggedIn) {
+      try {
+        await session.view.webContents.loadURL(session.url);
+        
+        // Wait for the page to load
+        await new Promise(resolve => {
+          const loadHandler = () => {
+            session.view.webContents.removeListener('did-finish-load', loadHandler);
+            resolve();
+          };
+          session.view.webContents.on('did-finish-load', loadHandler);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            session.view.webContents.removeListener('did-finish-load', loadHandler);
+            resolve();
+          }, 10000);
+        });
+        
+        // Check if we're still logged in
+        const url = await session.view.webContents.getURL();
+        const stillLoggedIn = this.isLoggedInUrl(id, url);
+        
+        if (!stillLoggedIn) {
+          console.log(`Session for ${id} expired, updating status`);
+          await this.setLoginStatus(id, false);
+        }
+        
+        return session;
+      } catch (error) {
+        console.error(`Error refreshing session for ${id}:`, error);
+        // On error, mark as logged out
+        await this.setLoginStatus(id, false);
+        return session;
+      }
+    }
+    
+    return session;
+  }
+  
+  /**
+   * Check the login status of all sessions
+   * @returns {Promise<object>} Map of model IDs to login status
+   */
+  async checkAllSessions() {
+    const results = {};
+    
+    for (const [id, session] of Object.entries(this.sessions)) {
+      try {
+        await this.refreshSession(id);
+        results[id] = session.isLoggedIn;
+      } catch (error) {
+        console.error(`Error checking session for ${id}:`, error);
+        results[id] = false;
+      }
+    }
+    
+    return results;
   }
 
   async sendPrompt(id, prompt) {
@@ -200,6 +280,60 @@ class BrowserIntegrator {
         
         checkResponse();
       });
+    `);
+  }
+
+  /**
+   * Gets the current response for streaming purposes (doesn't wait for completion)
+   * @param {string} id - The model ID
+   * @returns {Promise<string>} The current response text
+   */
+  async getResponseForStreaming(id) {
+    const session = this.sessions[id];
+    if (!session) {
+      throw new Error(`Session ${id} not found`);
+    }
+    
+    // Get current response text without waiting for completion
+    return session.view.webContents.executeJavaScript(`
+      (() => {
+        const responseEl = document.querySelector('${session.selectors.responseContainer}');
+        return responseEl ? responseEl.textContent : '';
+      })();
+    `);
+  }
+
+  /**
+   * Check if the response generation is still in progress
+   * @param {string} id - The model ID
+   * @returns {Promise<boolean>} True if still generating, false if complete
+   */
+  async isGenerating(id) {
+    const session = this.sessions[id];
+    if (!session) {
+      throw new Error(`Session ${id} not found`);
+    }
+    
+    // Model-specific selectors for detecting ongoing generation
+    const generatingSelectors = {
+      claude: '.thinking, .incomplete',
+      chatgpt: '.result-streaming',
+      grok: '.message-content[data-message-author-role="assistant"] .cursor, .message-content[data-message-author-role="assistant"][aria-busy="true"]',
+      gemini: '.response-container .loading, .response-container .generating'
+    };
+    
+    const selector = generatingSelectors[id] || '';
+    
+    if (!selector) {
+      // If no specific selector, assume complete
+      return false;
+    }
+    
+    return session.view.webContents.executeJavaScript(`
+      (() => {
+        const generatingEl = document.querySelector('${selector}');
+        return !!generatingEl;
+      })();
     `);
   }
 
