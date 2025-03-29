@@ -48,7 +48,7 @@ This release includes significant improvements over the initial MVP:
 2. **Installation**:
    ```bash
    # Clone the repository
-   git clone https://github.com/yourusername/aegntic-desktop.git
+   git clone https://github.com/aegntic/aegntic-desktop.git
    cd aegntic-desktop
 
    # Install dependencies
